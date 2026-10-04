@@ -93,7 +93,7 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If search_listings returns an empty list, put a message in session["error"] that repeats what was searched and says what to fix. For example: "No listings matched 'graphic tee', size M, under $15. Try raising your maximum price, changing the size, or using fewer keywords." Then stop before calling `suggest_outfit` or `create_fit_card`, so the session["fit_card"] stays None. Otherwise, take the first result (the best match, since results are sorted highest score first), put it in session["selected_item"], and pass it to `suggest_outfit`.
 
 **Where it lives:** `agent.py::run_agent`
 
