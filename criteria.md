@@ -24,10 +24,7 @@ data earns credit; *"80% seemed reasonable"* does not.
 Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
-**Why this target:**
-<!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
-     "my search is a plain keyword match and some phrasings will miss" is a
-     real answer. -->
+**Why this target:** I picked 4 of 5 because a full run depends on two model calls, `suggest_outfit` and `create_fit_card`, and I don't control those because a call can be rate limited or fail, or `suggest_outfit` can return an empty string, which makes `create_fit_card` return its fallback message and not a caption. My search is also a plain keyword match, so a query worded differently from the listing ("t-shirt" for "tee") can miss an item that should match. One miss in five allows for that and two or more would mean something in my loop or tools needs fixing.
 
 ---
 
@@ -36,67 +33,52 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
-**Why this target:**
-<!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+**Why this target:** I picked 5 of 5 because if the query matches nothing, only the parser and search_listings run, and both are plain code and don't call the model, so nothing varies between runs. If there is one miss, that only means that a bug exists in the branch.
 
 ---
 
-## 3. Something about state
+## 3. The item the search found must match the item the next tool received
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
-
+Given a query that matches at least one listing, the `id` of `selected_item` in the session, which is the item with the highest score returned from `search_listings`, must match the `id` of the `new_item`, the item passed into the `suggest_outfit` step, as recorded in the trace, in 5 of 5 tries.
 
 
 **Why this target:**
 
-
+The `run_agent` loop code moves the item from one tool to the other and the model doesn't, so that code does the same thing in every run. A single miss is a bug, which is why anything under 5 of 5 is not acceptable.
 
 ---
 
-## 4. Something about the fit card
+## 4. The fit card must name the listing's price, platform name and a word from the listing's title.
 
-<!-- YOU WRITE THIS ONE.
-
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
-
+Given a query that matches at least one listing, the fit card is a two-to-four sentence caption that contains the listing's price, the platform name, and at least one word from the listing's title, each at least once, in at least 4 of 5 tries.
 
 
 **Why this target:**
 
+I picked 4 of 5 because the model writes the caption. My prompt can ask for a two-to-four sentence caption with the price, the platform name and the title but it can't guarantee the model does it. So 1 miss in 5 is a normal variation, and 2 or more would mean the prompt needs to be fixed.
 
 
 ---
 
-## 5. Your choice
+## 5. The parser reads the price ceiling correctly
 
-<!-- YOU WRITE THIS ONE TOO.
+Given the queries below, `session["parsed"]["max_price"]` holds the expected value for each one — 8 of 8.
 
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
-
+| # | Query | Expected `max_price` |
+|---|---|---|
+| 1 | vintage graphic tee under $30 | 30 |
+| 2 | flannel shirt, max $25 | 25 |
+| 3 | denim jacket below 40 dollars | 40 |
+| 4 | under $19.99, a baby tee | 19.99 |
+| 5 | size 9 boots under $40 | 40 |
+| 6 | W30 jeans under $50 | 50 |
+| 7 | graphic tee, at least $30 | None |
+| 8 | vintage graphic tee | None |
 
 
 **Why this target:**
 
-
+I picked 8 of 8 because the parser is my own code using simple patterns, not the model, so the same query parses the same way every run and any miss is a bug in the parser. I included queries 5 and 6 because they contain a size number that a simple pattern can mistake for the price, and query 7 because "at least $30" is a floor, not a ceiling, so setting max_price to 30 will return the opposite of what the user asked for. I expect a first version of the parser to miss at least one of these.
 
 ---
 
