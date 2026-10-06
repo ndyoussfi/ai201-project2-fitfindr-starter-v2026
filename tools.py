@@ -23,6 +23,7 @@ the description has to say what is *in* the list.
 import config  # noqa: F401 — you'll use this in search_listings
 from generate import generate
 from utils.data_loader import load_listings
+import re
 
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
@@ -78,8 +79,26 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+
+    listings = load_listings()
+    if max_price is not None:
+        listings = [item for item in listings if item["price"] <= max_price]
+    if size is not None:
+        listings = [item for item in listings if size.lower() in _size_words(item["size"])]
+    listings = [item for item in listings if _score(item, description) > 0]
+    listings = sorted(listings, key=lambda item: _score(item, description), reverse=True)
+    return listings[:config.SEARCH_RESULT_LIMIT]
+
+def _size_words(size: str) -> list[str]:
+    pieces = re.split(r'[/ ()]+', size.lower())
+    return [piece for piece in pieces if piece]
+
+def _words(text: str) -> set[str]:
+    return set(re.findall(r'[a-z0-9]+', text.lower()))
+
+def _score(item: dict, description: str) -> int:
+    text = f"{item['title']} {item['description']} {item['category']} {' '.join(item['style_tags'])}"
+    return len(_words(description) & _words(text))
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
