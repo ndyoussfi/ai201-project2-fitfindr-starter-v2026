@@ -198,5 +198,15 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit.strip():
+        return f"Can't write a fit card: no outfit suggestion was provided for {new_item['title']}."
+
+    prompt = f"""Write a caption someone would actually post about the find containing a two-to-four sentence caption that contains: 
+    the listing's price: ${new_item["price"]:g}
+    the platform name: {new_item["platform"]}
+    and at least one word from the listing's title {new_item["title"]}
+    each at least once for the suggested outfit:
+    {outfit}
+    Write plain text, no markdown.
+    """
+    return generate(prompt)

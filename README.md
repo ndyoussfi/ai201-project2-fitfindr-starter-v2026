@@ -127,12 +127,17 @@ $ python -c "from tools import search_listings; print(search_listings('graphic t
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
 
+Outfit 1: Pair the Vintage Levi's 501 Jeans with the white ribbed tank top and the black combat boots for a classic, edgy look. Add the brown leather belt and the black crossbody bag to complete your accessories. This combination keeps the upper body fitted to balance the straight-leg fit of the denim.
+
+Outfit 2: Combine the Vintage Levi's 501 Jeans with the oversized grey crewneck sweatshirt and the chunky white sneakers for a relaxed, casual vibe. Layer the vintage black denim jacket on top and wear the black crossbody bag for convenience. This look leans into streetwear while utilizing your existing comfortable layers.
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
+python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+
+Scored these vintage Levi's 501 jeans for only $38 on depop and I am obsessed with the medium wash! They are going to look so cute styled with a simple top and fresh white sneakers for an easy everyday look.
 
 ```
 
