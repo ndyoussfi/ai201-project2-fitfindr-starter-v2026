@@ -131,8 +131,35 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    
+    items = wardrobe["items"]
+    if not items:
+        prompt = f"""The user is thinking of buying this thrifted item:
+        Title: {new_item['title']}
+        Category: {new_item['category']}
+        Colors: {', '.join(new_item['colors'])}
+        Style: {', '.join(new_item['style_tags'])}
+        They have no saved wardrobe.
+        Suggest 1 or 2 outfits built around this item using general clothes most people own.
+        Say that the ideas are general because no wardrobe is saved.
+        Write plain text, no markdown, at most 4 sentences per outfit.
+        """
+        return generate(prompt)
+
+    wardrobe_text = "\n".join([f"- {item['name']} ({item['category']})" for item in items])
+
+    prompt = f"""The user is thinking of buying this thrifted item:
+            Title: {new_item['title']}
+            Category: {new_item['category']}
+            Colors: {', '.join(new_item['colors'])}
+            Style: {', '.join(new_item['style_tags'])}
+            They already own these pieces:
+            {wardrobe_text}
+            Suggest 1 or 2 outfits built around this item using only the pieces they already own.
+            Write each piece's name as it appears in the list.
+            Write plain text, no markdown, at most 4 sentences per outfit.
+            """
+    return generate(prompt)
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
