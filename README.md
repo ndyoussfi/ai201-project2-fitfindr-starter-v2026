@@ -68,14 +68,14 @@
 
 - **What it does:** Asks the model to suggest one or two outfits using a given thrifted item and the user's wardrobe, then returns a non-empty string with outfit suggestions.
 - **Inputs:** new_item (dict) - the listing item the user is considering from `search_listings`. wardrobe (dict) - a wardrobe dict with an 'items' key holding a list of items. Each wardrobe dict item has these fields: id, name, category, colors (list), style_tags (list), notes (optional). Items may be empty.
-- **Returns:**  A non-empty string with outfit suggestions. 
+- **Returns:**  A non-empty plain text string with one or two outfit suggestions, naming existing wardrobe pieces as they are written in the wardrobe. 
 - **When it has nothing:** With an empty wardrobe, it returns general styling advice rather than raising or returning "".
 
 ### `create_fit_card`
 
 - **What it does:** Asks the model to write a short caption someone would actually post about the find using the user's given thrifted item and the suggested outfit from `suggest_outfit`, and returns a two-to-four sentence caption.
 - **Inputs:** outfit (str) - outfit suggestion string from `suggest_outfit`, and new_item (dict) - the same listing dict from `search_listings` that went to `suggest_outfit`.
-- **Returns:**  A two-to-four sentence caption (str) that mentions the item, price and platform once each.
+- **Returns:**  A two-to-four sentence caption (str) that mentions the item, price and platform at least once each.
 - **When it has nothing:** If outfit is empty or whitespace, it doesn't call the model and returns the string "Can't write a fit card: no outfit suggestion was provided for <item title>.", and never raises.
 
 ---
@@ -97,9 +97,9 @@
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** The query is parsed using regex, in `agent.py::parse_query` and two helper functions, which produce three values: `description`, `size` and `max_price`. The two helpers `agent.py::_parse_max_price` and `agent.py::_parse_size` use `re.search` to find the price, which is the number after "under", "below" or "max" (with or without a `$`), and the size, which is the word after "size". `parse_query` then uses `re.sub` to remove those two phrases and `.strip()` to clean up, and whatever is left is the description. A value that isn't found is `None`.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` (what the user typed) -> `parsed` (description, size, max_price from parse_query) -> `search_results` (the list from `search_listings`) -> `selected_item` (the first result) -> `outfit_suggestion` (the string from `suggest_outfit`, given `selected_item` and `wardrobe`) -> `fit_card` (the string from `create_fit_card`, given `outfit_suggestion` and `selected_item`). Each result is stored in the session and read back out of it for the next call. If `search_results` is empty, error is set and the run stops there, so `selected_item`, `outfit_suggestion` and `fit_card` stay `None`.
 
 ---
 
@@ -113,8 +113,17 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
 
+Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+Outfit:   Outfit 1: Pair the Y2K Baby Tee with the baggy straight-leg jeans, the chunky white sneakers, and the black crossbody bag for a classic casual look. Add the vintage black denim jacket over top when the weather gets chilly.
+
+Outfit 2: Combine the Y2K Baby Tee with the wide-leg khaki trousers, the brown leather belt, and the black combat boots for an edgy, contrasting style. Finish off the look by wearing the black cropped zip hoodie layered over the top.
+
+Fit card: Found this amazing Y2K baby tee on Depop and I am officially obsessed with it. I only paid $18 which feels like an absolute steal for how cute it is. Definitely planning to style it with some baggy jeans and chunky sneakers for the ultimate casual look.
+
+0 model calls this session, 2 served from cache
 ```
 
 **The three tools, tested one at a time**
