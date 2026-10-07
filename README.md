@@ -39,9 +39,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
-
-
+FitFindr is an agent that helps someone shop second hand clothes. The user types a request in natural language, such as "vintage graphic tee under $30, size M". The agent pulls the description, size and maximum price out of that text, searches 40 thrift listings, and picks the best match. It then asks a model to suggest one or two outfits that pair the item with pieces from the user's saved wardrobe, and to write a short caption they could post about the find. The user gets back the listing, the outfit ideas and the caption. If no listing matches, the agent stops before calling the model and returns a message that repeats what was searched and says what to change, such as raising the price or dropping the size.
 
 ---
 
@@ -154,24 +152,17 @@ Scored these vintage Levi's 501 jeans for only $38 on depop and I am obsessed wi
 
 ## How I Used AI
 
-<!-- Two specific moments. What you asked, what came back, what you changed.
-
-     "I used Claude to help me code" is not enough.
-
-     "I gave Claude my search_listings spec. It returned None on no match
-     instead of an empty list, so I changed it" is the level we want. -->
-
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I showed Claude my first suggest_outfit prompt, which was one sentence that passed the whole item dict and the wardrobe to the model, and the output it produced.
+- *What came back:* The model had returned about 15 lines of markdown headings and bullets. Claude pointed out three gaps against my own spec: no limit on length or format, nothing telling the model the wardrobe was empty, and the raw dict including the id.
+- *What I changed:* I rewrote the prompt to list only the title, category, colors and style tags, say that the user has no saved wardrobe, and ask for plain text with at most four sentences per outfit. The next run returned two short plain-text outfits.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I pasted a caption from create_fit_card and asked Claude to check it against my criterion 4.
+- *What came back:* It passed, but Claude noticed the price read "38.0 dollars", because my prompt passed the raw float 38.0 and the model copied it.
+- *What I changed:* I changed the prompt line to ${new_item["price"]:g}, so the model sees $38. The next caption said "for only $38".
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
