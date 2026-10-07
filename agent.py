@@ -17,6 +17,7 @@ import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
+import re
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -106,9 +107,25 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    count = 1
+    trace.check_iterations(count)
+    
+    session["parsed"] = parse_query(query)
+    parsed = session["parsed"]
+    session["search_results"] = search_listings(
+        parsed["description"], 
+        parsed["size"], 
+        parsed["max_price"]
+    )
+    results = session["search_results"]
+    if not results:
+        session["error"] = _nothing_found_message(parsed)
+        return session
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    session["selected_item"] = results[0]
+    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], session["wardrobe"])
+    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+
     return session
 
 
@@ -125,6 +142,37 @@ def _show(session: dict) -> None:
     print(f"  outfit:   {session['outfit_suggestion']}")
     print(f"  fit card: {session['fit_card']}")
 
+def _parse_max_price(query: str) -> float | None:
+    match = re.search(r'(?:under|below|max) \$?(\d+(?:\.\d+)?)', query.lower())
+    if not match:
+        return None
+    return float(match.group(1))
+
+def _parse_size(query: str) -> str | None:
+    match = re.search(r'size (\w+)', query.lower())
+    if not match:
+        return None
+    return match.group(1)
+
+# Known gap: filler words like "looking for a" and "dollars" stay in the
+# description and count as keywords in the search. Left for unit 4.
+def parse_query(query: str) -> dict:
+    text = query.lower()
+    description = re.sub(r'(?:under|below|max) \$?(\d+(?:\.\d+)?)', '', text)
+    description = re.sub(r'size (\w+)', '', description)
+    return {
+        "description": description.strip(" ,"),
+        "size": _parse_size(query),
+        "max_price": _parse_max_price(query),
+    }
+
+def _nothing_found_message(parsed: dict) -> str:
+    searched = f"'{parsed['description']}'"
+    if parsed["size"] is not None:
+        searched += f", size {parsed['size']}"
+    if parsed["max_price"] is not None:
+        searched += f", under ${parsed['max_price']:g}"
+    return f"No listings matched {searched}. Try raising your maximum price, changing the size, or using fewer keywords."
 
 if __name__ == "__main__":
     from utils.data_loader import get_example_wardrobe
