@@ -18,7 +18,7 @@ import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 import re
-
+from mcp_client import call_tool
 
 # ── session state ─────────────────────────────────────────────────────────────
 
@@ -107,26 +107,75 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
-    count = 1
-    trace.check_iterations(count)
+    steps = 0
     
-    session["parsed"] = parse_query(query)
-    parsed = session["parsed"]
-    session["search_results"] = search_listings(
-        parsed["description"], 
-        parsed["size"], 
-        parsed["max_price"]
-    )
-    results = session["search_results"]
-    if not results:
-        session["error"] = _nothing_found_message(parsed)
+    try:
+        steps += 1
+        trace.check_iterations(steps)
+        parsed = parse_query(query)
+        session["parsed"] = parsed
+        trace.step("parse_query", inputs = query, returned= parsed)
+
+        steps += 1
+        trace.check_iterations(steps)
+        results, search_name = _search(parsed)
+        session["search_results"] = results
+        trace.step(
+            search_name,
+            inputs = parsed,
+            returned = results,
+            note=f"{len(results)} match(es)"
+        )
+
+        if not results:
+            session["error"] = _nothing_found_message(parsed)
+            trace.step("branch", note="search returned []: stopping before suggest_outfit")
+            return session
+    
+        steps += 1
+        trace.check_iterations(steps)
+        session["selected_item"] = results[0]
+        trace.step("selected_item", returned=session["selected_item"])
+
+        steps += 1
+        trace.check_iterations(steps)
+        session["outfit_suggestion"] = suggest_outfit(
+            session["selected_item"], 
+            session["wardrobe"]
+        )
+        trace.step("suggest_outfit", returned=session["outfit_suggestion"])
+
+        steps += 1
+        trace.check_iterations(steps)
+        session["fit_card"] = create_fit_card(
+            session["outfit_suggestion"],
+            session["selected_item"]
+        )
+        trace.step("create_fit_card", returned=session["fit_card"])
+
         return session
+    except Exception:
+        # TODO
+        return []
 
-    session["selected_item"] = results[0]
-    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], session["wardrobe"])
-    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
 
-    return session
+def _search(parsed: dict) -> tuple[list[dict], str]:
+    try:
+        results = call_tool(
+           "search_listings", 
+           {
+                "description": parsed["description"],
+                "max_price": parsed["max_price"],
+                "size": parsed["size"]
+            }, 
+        )
+        return results or [], "search_listings (via MCP)"
+    except Exception:
+        # Direct search fallback:
+        # Keep the agent usable when the MCP server cannot be reached
+        return search_listings(
+            parsed["description"], parsed["size"], parsed["max_price"]
+        ), "search_listings (direct — MCP failed)"
 
 
 # ── running it directly ───────────────────────────────────────────────────────
