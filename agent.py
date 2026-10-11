@@ -114,7 +114,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         trace.check_iterations(steps)
         parsed = parse_query(query)
         session["parsed"] = parsed
-        trace.step("parse_query", inputs = query, returned= parsed)
+        trace.step("parse_query", inputs = query, returned= str(parsed))
 
         steps += 1
         trace.check_iterations(steps)
@@ -122,7 +122,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         session["search_results"] = results
         trace.step(
             search_name,
-            inputs = parsed,
+            inputs = str(parsed),
             returned = results,
             note=f"{len(results)} match(es)"
         )
@@ -135,7 +135,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         steps += 1
         trace.check_iterations(steps)
         session["selected_item"] = results[0]
-        trace.step("selected_item", returned=session["selected_item"])
+        trace.step(
+            "selected_item",
+            returned=session["selected_item"],
+            note=f"selected_item_id={session['selected_item']['id']}"
+        )
 
         steps += 1
         trace.check_iterations(steps)
@@ -143,7 +147,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             session["selected_item"], 
             session["wardrobe"]
         )
-        trace.step("suggest_outfit", returned=session["outfit_suggestion"])
+        trace.step(
+            "suggest_outfit",
+            inputs=f"new_item_id={session['selected_item']['id']}",
+            returned=session["outfit_suggestion"]
+        )
 
         steps += 1
         trace.check_iterations(steps)
@@ -154,9 +162,14 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         trace.step("create_fit_card", returned=session["fit_card"])
 
         return session
-    except Exception:
-        # TODO
-        return []
+    except ModelUnavailable as e:
+        session["error"] = (
+            "The model could not be reached, so no outfit or fit card was written. "
+            "Check that your API key is correct and that you are online, then try again. "
+            f"(Detail: {e})"
+        )
+        trace.step("Model Unavailable", note="Stopped: The model could not be reached")
+        return session
 
 
 def _search(parsed: dict) -> tuple[list[dict], str]:

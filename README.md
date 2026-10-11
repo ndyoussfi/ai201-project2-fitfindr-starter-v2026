@@ -246,14 +246,110 @@ that produced it:
 **Happy path**
 
 ```
+python app.py ask 'vintage graphic tee under $30' --trace
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    10 match(es)
+[3] selected_item
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    selected_item_id=lst_002
+[4] suggest_outfit
+      in:  new_item_id=lst_002
+      out: Outfit 1: Pair the Y2K Baby Tee with the baggy straight-leg jeans, the chunky white sneakers, and the black cr…
+[5] create_fit_card
+      out: Found this amazing Y2K baby tee on Depop and I am officially obsessed with it. I only paid $18 which feels lik…
+
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   Outfit 1: Pair the Y2K Baby Tee with the baggy straight-leg jeans, the chunky white sneakers, and the black crossbody bag for a classic casual look. Add the vintage black denim jacket over top when the weather gets chilly.
+
+Outfit 2: Combine the Y2K Baby Tee with the wide-leg khaki trousers, the brown leather belt, and the black combat boots for an edgy, contrasting style. Finish off the look by wearing the black cropped zip hoodie layered over the top.
+
+  Fit card: Found this amazing Y2K baby tee on Depop and I am officially obsessed with it. I only paid $18 which feels like an absolute steal for how cute it is. Definitely planning to style it with some baggy jeans and chunky sneakers for the ultimate casual look.
+
+0 model calls this session, 2 served from cache
 
 ```
 
 **Empty search**
 
 ```
+python app.py ask 'moroccan djellaba' --trace
+[1] parse_query
+      in:  moroccan djellaba
+      out: {'description': 'moroccan djellaba', 'size': None, 'max_price': None}
+[2] search_listings (via MCP)
+      in:  {'description': 'moroccan djellaba', 'size': None, 'max_price': None}
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
+
+  No listings matched 'moroccan djellaba'. Try raising your maximum price, changing the size, or using fewer keywords.
+
+0 model calls this session
 
 ```
+
+**Empty wardrobe**
+
+```
+python app.py ask 'vintage graphic tee under $30' --empty-wardrobe --trace
+(running with an empty wardrobe)
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    10 match(es)
+[3] selected_item
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    selected_item_id=lst_002
+[4] suggest_outfit
+      in:  new_item_id=lst_002
+      out: Since you do not have a saved wardrobe, these ideas are general and use basic items most people already own. F…
+[5] create_fit_card
+      out: Scored this adorable Y2K butterfly baby tee on Depop for just $18 and I am obsessed. Paired it with my favorit…
+
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   Since you do not have a saved wardrobe, these ideas are general and use basic items most people already own. For a classic casual look, pair the Y2K baby tee with your favorite pair of light-wash high-waisted jeans and comfortable white sneakers. Add a small shoulder bag and a simple silver necklace to complete the effortless vintage aesthetic.
+
+For a warmer or dressier option, layer the baby tee underneath a denim or corduroy overall dress paired with chunky platform sandals. You can also throw on a pink or white cardigan if the weather gets chilly while keeping the look playful and cohesive.
+
+  Fit card: Scored this adorable Y2K butterfly baby tee on Depop for just $18 and I am obsessed. Paired it with my favorite light-wash jeans and white sneakers for the ultimate effortless vintage look. Such a steal for the collection!
+
+0 model calls this session, 2 served from cache
+```
+
+**Model unavailable**
+
+```
+GEMINI_API_KEY=wrong-key-on-purpose AI201_CACHE=0 python app.py ask 'denim jacket under $50' --trace
+[1] parse_query
+      in:  denim jacket under $50
+      out: {'description': 'denim jacket', 'size': None, 'max_price': 50.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'denim jacket', 'size': None, 'max_price': 50.0}
+      out: 7 items: Denim Jacket — Light Wash, Cropped, Vintage Levi's 501 Jeans — Medium Wash, 90s Track Jacket — Navy/White Stripe … +4 more
+      →    7 match(es)
+[3] selected_item
+      out: Denim Jacket — Light Wash, Cropped ($42.0, poshmark)
+      →    selected_item_id=lst_007
+[4] Model Unavailable
+      →    Stopped: The model could not be reached
+
+  The model could not be reached, so no outfit or fit card was written. Check that your API key is correct and that you are online, then try again. (Detail: The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com.)
+
+1 model calls this session
+```
+
+Before I added the `ModelUnavailable` handler, I added a generic `Exception` handler and returned an empty list `return []`, which printed `TypeError: list indices must be integers or slices, not str.`
 
 **On the MCP move:** <!-- what changed in your code, and whether anything
 behaved differently afterwards. If the rewire didn't work, say exactly where it
