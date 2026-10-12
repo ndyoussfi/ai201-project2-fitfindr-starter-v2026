@@ -35,18 +35,76 @@ SCENARIOS = [
         "wardrobe": "empty",
         "criterion": None,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
-    #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
+    {
+        # Any matching query. Criterion 3 — state.
+        "name": "retrieved item from the search matches item passed to next tool",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        # Any matching query. Criterion 4 — the fit card.
+        "name": "fit card names the listing's price, platform name and a word from its title",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        # Criterion 5 — parser, query 1. Expected max_price: 30
+        "name": "parse 1: expect 30",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 2. Expected max_price: 25
+        "name": "parse 2: expect 25",
+        "query": "flannel shirt, max $25",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 3. Expected max_price: 40
+        "name": "parse 3: expect 40",
+        "query": "denim jacket below 40 dollars",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 4. Expected max_price: 19.99
+        "name": "parse 4: expect 19.99",
+        "query": "under $19.99, a baby tee",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 5. Expected max_price: 40
+        "name": "parse 5: expect 40",
+        "query": "size 9 boots under $40",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 6. Expected max_price: 50
+        "name": "parse 6: expect 50",
+        "query": "W30 jeans under $50",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 7. Expected max_price: None
+        "name": "parse 7: expect None",
+        "query": "graphic tee, at least $30",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Criterion 5 — parser, query 8. Expected max_price: None
+        "name": "parse 8: expect None",
+        "query": "vintage graphic tee",
+        "wardrobe": "example",
+        "criterion": 5,
+    }
 ]
 
 WARDROBES = ("example", "empty")
