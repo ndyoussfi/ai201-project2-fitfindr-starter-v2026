@@ -184,17 +184,149 @@ Scored these vintage Levi's 501 jeans for only $38 on depop and I am obsessed wi
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. The item the search found must match the item the next tool received | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card must name the listing's price, platform name and a word from the listing's title. | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. The parser reads the price ceiling correctly | 5 of 5 for 8 of 8 queries | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+Diagnostic (not one of my five): the empty-wardrobe scenario returned general advice in 5 of 5 tries, with no crash and no empty string.
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
+**Criterion 1, try 1**
+
+Fit card:
+
+```
+Score of the century on depop for only $18. I am obsessed with this butterfly print baby tee and how easy it is to style with baggy jeans or khaki trousers. Seriously running to my cart every time I find deals like this.
 ```
 
+Trace:
+
+```
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    10 match(es)
+[3] selected_item
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    selected_item_id=lst_002
+[4] suggest_outfit
+      in:  new_item_id=lst_002
+      out: Outfit one pairs the Y2K Baby Tee — Butterfly Print with baggy straight-leg jeans, dark wash and chunky white …
+[5] create_fit_card
+      out: Score of the century on depop for only $18. I am obsessed with this butterfly print baby tee and how easy it i…
+```
+
+**Criterion 2, try 1**
+
+- stopped early: yes — No listings matched 'designer ballgown', size xxs, under $5. Try raising your maximum price, changing the size, or using fewer keywords.
+- selected_item: (none)
+- search_results: 0
+
+Trace:
+
+```
+[1] parse_query
+      in:  designer ballgown size XXS under $5
+      out: {'description': 'designer ballgown', 'size': 'xxs', 'max_price': 5.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'designer ballgown', 'size': 'xxs', 'max_price': 5.0}
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
+```
+
+**Criterion 3, try 1**
+
+Trace:
+
+```
+[3] selected_item
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    selected_item_id=lst_002
+[4] suggest_outfit
+      in:  new_item_id=lst_002
+      out: Outfit one pairs the Y2K Baby Tee — Butterfly Print with your baggy straight-leg jeans, dark wash for a classi…
+
+```
+
+**Criterion 4, try 1**
+
+Fit card:
+
+```
+Found this absolute steal on Depop for just $18 and I am obsessed. The butterfly print gives major nostalgia vibes and fits like an absolute dream. Can not wait to style this all autumn long!
+```
+
+**Criterion 5, query 1 of 8, try 1**
+
+```
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+```
+
+**Criterion 5, query 2 of 8, try 1**
+
+```
+[1] parse_query
+      in:  flannel shirt, max $25
+      out: {'description': 'flannel shirt', 'size': None, 'max_price': 25.0}
+```
+
+**Criterion 5, query 3 of 8, try 1**
+
+```
+[1] parse_query
+      in:  denim jacket below 40 dollars
+      out: {'description': 'denim jacket  dollars', 'size': None, 'max_price': 40.0}
+```
+
+**Criterion 5, query 4 of 8, try 1**
+
+```
+[1] parse_query
+      in:  under $19.99, a baby tee
+      out: {'description': 'a baby tee', 'size': None, 'max_price': 19.99}
+```
+
+**Criterion 5, query 5 of 8, try 1**
+
+```
+[1] parse_query
+      in:  size 9 boots under $40
+      out: {'description': 'boots', 'size': '9', 'max_price': 40.0}
+```
+
+**Criterion 5, query 6 of 8, try 1**
+
+```
+[1] parse_query
+      in:  W30 jeans under $50
+      out: {'description': 'w30 jeans', 'size': None, 'max_price': 50.0}
+```
+
+**Criterion 5, query 7 of 8, try 1**
+
+```
+[1] parse_query
+      in:  graphic tee, at least $30
+      out: {'description': 'graphic tee, at least $30', 'size': None, 'max_price': None}
+```
+
+**Criterion 5, query 8 of 8, try 1**
+
+```
+[1] parse_query
+      in:  vintage graphic tee
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': None}
 ```
 
 ---
