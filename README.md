@@ -351,15 +351,25 @@ Found this absolute steal on Depop for just $18 and I am obsessed. The butterfly
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | A matching query completes all three tools | 4 of 5 | MET (5/5) | In all five tries the trace shows the search,   `suggest_outfit` and ``create_fit_card` steps, and a fit card was returned. |
+| 2 | An impossible query stops before the second tool | 5 of 5 | MET (5/5) | In all five tries, the trace shows that the agent stopped early, no item was selected, returned at branch [3] before `suggest_outfit`, and a message suggesting what to change was given back. |
+| 3 | The item the search found must match the item the next tool received | 5 of 5 | MET (5/5) | In all five tries, the trace shows that `selected_item_id` from the `selected_item` step matches `new_item_id` passed to the `suggest_outfit` step |
+| 4 | The fit card must name the listing's price, platform name and a word from the listing's title. | 4 of 5 | MET (5/5) | In all five tries, the fit card in the result file shows the two-to-four sentence caption containing the listing's price, the platform name, and at least one word from the listing's title. |
+| 5 | The parser reads the price ceiling correctly | 5 of 5 for 8 of 8 queries | MET (5/5) | For each of the eight queries, I compared `max_price` at step [1] of the trace with the expected value in `criteria.md`. All eight matched in all five runs. |
 
 **Diagnoses**
 
+I missed nothing. All of the 5 criteria were met, 5 of 5 tries each. However, that isn't the whole story. The agent still failed in certain areas that weren't measured. The targets I wrote were strict, but were narrow in what they measured. They all check a step ran correctly, but none checks that the selected item is what the user asked for. The run log shows 3 wrong results that all my 5 criteria missed.
 
+1- parse 3: `denim jacket below 40 dollars` returns jeans, in all 5 of 5 tries. Where: the tool, `tools.py::search_listings`. Mechanism: The only denim jacket in `listings.json` costs $42, so it was filtered out, leaving a listing that shares at least one word with the description, so the Levi's jeans stayed because of "denim" alone, with a score of 1 out of 3. All the remaining listings also scored 1, so the first one in the file returned as the best match. The loop branches out only on an empty list, so it passed jeans on. The correct answer should have been "No denim jacket under $40".
+
+2- parse 7: `graphic tee, at least $30` returns an $18 tee, 5 of 5 tries. Where: the parser and the tool together. Mechanism: `agent.py::parse_query` set the price ceiling correctly to `None`, but `search_listings` does not take a minimum price for an input, so `at least $30` was scored as individual keywords. No graphic tee in `listings.json` costs $30 or more, so the correct answer should have been an empty list with a message. 
+
+3- One fit card never named the item (criterion 4, try 1). Where: the model's output. Mechanism: the caption said `the butterfly print` but never `tee`. My criterion accepts any one word from the title, and my prompt asks for the same thing, so "butterfly" and "print" satisfied both. The model did what it was told. The criterion was weaker than my spec, which says the caption "mentions the item", not just its style.
+
+The pattern. Results 1 and 2 are the same problem, not two different ones. `search_listings` returns its best partial match as if it were a match in reality, and nothing between the search and the user checks the quality of that match.
+
+The criterion I would tighten is criterion 1. "completes all three tools and returns a fit card" is met by any item at all. A tighter version would require the selected item to match every keyword in the description, or at least to be in the category the user asked for.
 
 ---
 
