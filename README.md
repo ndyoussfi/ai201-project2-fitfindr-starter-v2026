@@ -164,6 +164,13 @@ Scored these vintage Levi's 501 jeans for only $38 on depop and I am obsessed wi
 - *What came back:* It passed, but Claude noticed the price read "38.0 dollars", because my prompt passed the raw float 38.0 and the model copied it.
 - *What I changed:* I changed the prompt line to ${new_item["price"]:g}, so the model sees $38. The next caption said "for only $38".
 
+**Moment 3**
+
+- *What I asked for*: I ran a query with a deliberately wrong API key, got TypeError: list indices must be integers or slices, not str, and asked Claude why a bad key produced that error.
+- *What came back*: Claude traced it to the end of my run_agent: except Exception: return [] caught the real ModelUnavailable error and returned a list where app.py expected the session dict, so the original error was hidden behind an unrelated one.
+- *What I changed*: I replaced it with except ModelUnavailable, which puts a message in session["error"] saying what broke and what to try, adds a trace step, and returns the session. The same run now ends at step 4 with "The model could not be reached… Check that your API key is correct and that you are online."
+
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -493,12 +500,7 @@ GEMINI_API_KEY=wrong-key-on-purpose AI201_CACHE=0 python app.py ask 'denim jacke
 
 Before I added the `ModelUnavailable` handler, I added a generic `Exception` handler and returned an empty list `return []`, which printed `TypeError: list indices must be integers or slices, not str.`
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
-
-
+**On the MCP move:** I moved `search_listings` onto MCP. `mcp_server.py` registers it as a tool with a short description of its inputs and its empty case, and `run_agent` now calls it through `mcp_client.call_tool`, inside a helper called `_search`. If the MCP call fails, `_search` falls back to the direct function and the trace says so, labelling the step "search_listings (direct — MCP failed)" in place of "search_listings (via MCP)". Nothing behaved differently after the move: "vintage graphic tee under $30" returned the same 10 results and the same Y2K Baby Tee as in unit 3. Every trace in both test runs shows "(via MCP)", so the fallback never ran.
 
 ---
 
@@ -542,9 +544,38 @@ Partly. It fixed the two failures it targeted, and it broke a case I hadn't test
 
 ## What's Still Broken
 
-<!-- For each criterion still missed: what you'd do, and why you stopped where
-     you did. "I ran out of time" is fine if it's true. Pretending nothing is
-     left is not. -->
+No criterion is missed, but the testing shows 5 real problems. For each one: what I'd do, and why I stopped.
+
+1- Chatty queries now return nothing. "looking for a really nice vintage tee" finds the right tee before my change and nothing after it. 
+
+What I'd do: fix the issue making sure that the filler words stop counting towards the half the words threshold.
+
+Why I stopped: the brief allows one change per unit. Also, fixing this as well would leave me unable to tell which change caused which result.
+
+2- Filler words stay in the description. `agent.py::parse_query` removes only the price and size phrases, so words like "looking", "for", "a", "dollars" and "at least" are scored as keywords.
+
+What I'd do: remove a short list of common filler words in parse_query before the description is used. 
+
+Why I stopped: the same one change rule.
+
+3- There's no minimum price. "at least $30" is now refused, which is better than returning an $18 tee, but it still can't be honoured. 
+
+What I'd do: add an optional min_price input to search_listings, to the MCP tool, and a pattern for it in the parser.
+
+Why I stopped: it changes the tool's inputs, its spec and its MCP contract, which is more than one change.
+
+4- Criterion 4 is weaker than my spec. It accepts any single word from the title, so a caption that says "butterfly print" but never "tee" passes, even though my spec says the caption "mentions the item".
+
+What I'd do: revise it to require the item's type word, such as "tee" or "jeans", and change the `create_fit_card` prompt to ask for it.
+
+Why I stopped: the brief allows revising a criterion only if it couldn't be measured. This one could be measured. It just measured too little, so I've recorded it here instead of changing it.
+
+5- The empty search advice doesn't fit every query. `agent.py::_nothing_found_message` always suggests "raising your maximum price, changing the size, or using fewer keywords", even when the query had no price or no size. For "graphic tee, at least $30", raising the maximum price makes no sense.
+
+What I'd do: only suggest changing the parts the user actually gave, plus a note when a minimum price was asked for.
+
+Why I stopped: I ran out of time after the improvement and the write-up.
+
 
 
 
