@@ -85,7 +85,7 @@ def search_listings(
         listings = [item for item in listings if item["price"] <= max_price]
     if size is not None:
         listings = [item for item in listings if size.lower() in _size_words(item["size"])]
-    listings = [item for item in listings if _score(item, description) > 0]
+    listings = [item for item in listings if _score(item, description) > 0 and _score(item, description) >= len(_words(description)) /2 ]
     listings = sorted(listings, key=lambda item: _score(item, description), reverse=True)
     return listings[:config.SEARCH_RESULT_LIMIT]
 
