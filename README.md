@@ -504,31 +504,39 @@ full. -->
 
 ## The Improvement
 
-<!-- What you changed, why your diagnosis pointed at it, and the after-run in
-     the same table format. One change, measured properly.
-
-     `python run_eval.py --label after` -->
-
 **What I changed:**
 
+One line in `tools.py::search_listings`. The old rule kept any listing that shared at least one word with the description. The new rule keeps a listing only if it shares at least one word and at least half of the description's words:
+
+```
+listings = [item for item in listings if _score(item, description) > 0 and _score(item, description) >= len(_words(description)) / 2]
+```
+
 **Which failure it was meant to fix:**
+
+Diagnoses 1 and 2. "denim jacket below 40 dollars" returned jeans, and "graphic tee, at least $30" returned an $18 tee. Both came from the same pattern: the search passed on a weak partial match (1 of 3 words, and 2 of 5) as if it were a real match, and nothing after it checked the match's quality.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. The item the search found must match the item the next tool received | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card must name the listing's price, platform name and a word from the listing's title. | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. The parser reads the price ceiling correctly | 5 of 5 for 8 of 8 queries | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
 **Did it help, and how do I know:**
 
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+Partly. It fixed the two failures it targeted, and it broke a case I hadn't tested.
 
+- Fixed: in the after run, parse 3 and parse 7 both stop at the branch with a "no listings matched" message in all five tries. Before, they selected the jeans and the $18 tee. The data has no denim jacket under $40 and no graphic tee at $30 or more, so stopping is the correct answer.
 
+- No change in the verdicts: all five criteria were MET before and after. The criteria check that each step ran correctly, not that the selected item is what the user asked for, so they couldn't register this fix. The evidence is in the results files, not in the table.
+
+- Made worse: I ran a chatty query by hand, before and after. "looking for a really nice vintage tee" selected the Y2K Baby Tee before the change, which is correct. After it, the agent says no listings matched. The description has seven words, so a listing now needs four. Only "vintage", "tee" and "a" can match, because the filler words "looking", "really" and "nice" never appear in a listing.
+
+- Not caused by the change: in the after run, all five criterion 4 fit cards named the item, unlike Try 1 before. I didn't change `create_fit_card` or its prompt, and the same item reached it, so this is the model varying between runs, not an improvement.
 
 ---
 
